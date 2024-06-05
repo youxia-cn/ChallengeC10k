@@ -10,7 +10,8 @@
 #include <iostream>
 
 class SingletonThreadPool{
-    static SingletonThreadPool* _tp;
+    static SingletonThreadPool* pThreadPool;
+    static int nThreadAmount;
 
     std::queue<std::function<void()>> taskQueue;
     std::mutex mut;
@@ -20,14 +21,14 @@ class SingletonThreadPool{
 
     public:
     static SingletonThreadPool& getThreadPool(){
-        if(_tp == nullptr){
-            _tp = new SingletonThreadPool(20);
+        if(pThreadPool == nullptr){
+            pThreadPool = new SingletonThreadPool(nThreadAmount);
         }
-        return *_tp;
+        return *pThreadPool;
     }
 
-    SingletonThreadPool(int thread_amount){
-        for(int i=0; i<thread_amount; i++){
+    SingletonThreadPool(int nThreadAmount){
+        for(int i=0; i<nThreadAmount; i++){
             std::thread t(
                     [=]{
                         while(!done){
@@ -58,8 +59,21 @@ class SingletonThreadPool{
         cond.notify_all();
     }
 
+    void terminate(){
+        done = true;
+    }
+
+    static void initThreadAmount(int n){
+        if(pThreadPool == nullptr){
+            nThreadAmount = n;
+        }else{
+            std::cerr << "ThreadPool has been created, cann't changed the thread amount!" << std::endl;
+        }
+    }
+
 };
 
-SingletonThreadPool* SingletonThreadPool::_tp = nullptr;
+SingletonThreadPool* SingletonThreadPool::pThreadPool = nullptr;
+int SingletonThreadPool::nThreadAmount = 20;
 
 #endif
