@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
 
 #define MAX_THREADS 20
 #define MAX_SOCKETS 10000
@@ -27,17 +28,19 @@ public:
     void operator()(){
         int buf[MAX_READS/sizeof(int)];
         bzero(buf, MAX_READS);
-        int n = read(sockfd, buf, MAX_READS);
-        if(n==0){
+        int nBytes = read(sockfd, buf, MAX_READS);
+        int nNums = nBytes/sizeof(int);
+
+        if(nBytes==0){
             connfds.erase(sockfd);
         }else{
-//            std::cout << "Socket " << sockfd << " received client's data: " << buf[0] << " " << buf[1] 
-  //              << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
-//            std::for_each(buf, buf+n/sizeof(int)-1, [](int& n){ n = abs(n); } );
-  //          std::sort(buf, buf+n/sizeof(int)-1);
-            write(sockfd, buf, n);
-    //        std::cout << "Socket " << sockfd << " sent data: " << buf[0] << " " << buf[1] 
-      //          << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
+            std::cout << "Socket " << sockfd << " received client's data: " << buf[0] << " " << buf[1] 
+                << " ... " << buf[nNums-2] << " " << buf[nNums-1] << std::endl;
+            std::for_each(&buf[0], &buf[nNums-1], [](int& n){ n = abs(n); } );
+            std::sort(&buf[0], &buf[nNums-1]);
+            write(sockfd, buf, nBytes);
+            std::cout << "Socket " << sockfd << " sent data: " << buf[0] << " " << buf[1] 
+                << " ... " << buf[nNums-2] << " " << buf[nNums-1] << std::endl;
         }
     }
 };
@@ -83,6 +86,7 @@ int main(){
                             threadPool.commitTask( ServerSocketTask(sockfd, connfds, threadPool) );
                         }
                     }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(250));
                 }
             }
         );
