@@ -49,7 +49,7 @@ public:
         }
     }
 
-    int epfd(){
+    int getEpfd(){
         return epfd;
     }
 

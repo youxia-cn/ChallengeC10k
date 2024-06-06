@@ -1,59 +1,116 @@
 #include "SingletonThreadPool.hpp"
 #include <arpa/inet.h>
+#include <mutex>
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <thread>
 #include <unistd.h>
-#include <algorithm>
+#include <random>
+#include <set>
 
-#define MAX_SOCKET 10000
+#define MAX_SOCKETS 10000
+#define SERVER_ADDR "127.0.0.1"
 #define SERVER_PORT 8888
-#define MAX_READ 4096
+#define MAX_READS 4096
+#define MAX_THREADS 20
+
+class ConnFdSet{
+    std::set<int> fds;
+    std::mutex mut;
+    public:
+    size_t size(){
+        std::lock_guard<std::mutex> lk(mut);
+        return fds.size();
+    }
+
+    void insert(int fd){
+        std::lock_guard<std::mutex> lk(mut);
+        fds.insert(fd);
+    }
+
+    void erase(int fd){
+        std::lock_guard<std::mutex> lk(mut);
+        fds.erase(fd);
+    }
+};
+
+class ClientSocketTask{
+    int sockfd;
+    ConnFdSet& connfds;
+    SingletonThreadPool& threadPool;
+    int* randomNums;
+    std::random_device& rd;
+
+public:
+    ClientSocketTask(int fd, ConnFdSet& fds, SingletonThreadPool& tp, int* rdn, std::random_device& rde):
+        sockfd(fd), connfds(fds), threadPool(tp), randomNums(rdn), rd(rde){
+        }
+
+    void operator()(){
+        int n = rd() % 10;
+
+        for(int i=0; i<n; i++){
+            int start = rd()%(100000 - MAX_READS/sizeof(int));
+            std::cout << "thread_id:" << std::this_thread::get_id() << " ,fd:" << sockfd << " ,n:" << n << " ,i:" << i << std::endl;
+            send(sockfd, randomNums+start, MAX_READS, 0);
+            std::cout << "Send data: " << randomNums[start] << " " << randomNums[start+1] << " ... "
+                << randomNums[start+MAX_READS/sizeof(int)-1] << " " << randomNums[start+MAX_READS/sizeof(int)-1] << std::endl;
+            int receivedNums[MAX_READS/sizeof(int)];
+            recv(sockfd, receivedNums, MAX_READS, 0);
+            std::cout << "Receiv data: " << receivedNums[0] << " " << receivedNums[1] << " ... "
+                << receivedNums[MAX_READS/sizeof(int)-1] << " " << receivedNums[MAX_READS/sizeof(int)-1] << std::endl;
+        }
+
+        if(n%5 == 0){
+            connfds.erase(sockfd);
+            close(sockfd);
+        }else{
+            threadPool.commitTask( ClientSocketTask(sockfd, connfds, threadPool, randomNums, rd) );
+        }
+    }
+};
 
 int main(){
 
-    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    //先准备 100000 个整数
+    std::random_device rd;
+    int randomNums[100000];
+    for(int i=0; i<100000; i++){
+        randomNums[i] = rd();
+    }
 
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    inet_pton(AF_INET, SERVER_ADDR, &server_addr.sin_addr);
     server_addr.sin_port = htons(SERVER_PORT);
 
-    if( bind(listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1 ){
-            perror("bind");
-    }else{
-        std::cout << "Bind Successful!" << std::endl;
-    }
-
-    if( listen(listenfd, 20) == -1 ){
-        perror("listen");
-    }else{
-        std::cout << "Listen Successful!" << std::endl;
-    }
-
     ConnFdSet connfds;
+    SingletonThreadPool& threadPool = SingletonThreadPool::getThreadPool();
+
     while(true){
-        struct sockaddr_in client_addr;
-        socklen_t client_addr_len = sizeof(client_addr);
-        int connfd = accept(listenfd, (struct sockaddr *)&client_addr, &client_addr_len);
-        char str[INET_ADDRSTRLEN];
-        std::cout << "Received from " << inet_ntop(AF_INET, &client_addr.sin_addr, str, sizeof(str)) << ":" << ntohs(client_addr.sin_port) << std::endl;
-        connfds.insert(connfd);
+        if(connfds.size() < MAX_SOCKETS){
+            int sockfd = socket(PF_INET, SOCK_STREAM, 0);
+            if(sockfd == -1){
+                perror("create socket");
+                return 1;
+            }
+            if(connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1){
+                perror("connect");
+            }else{
+                connfds.insert(sockfd);
+                threadPool.commitTask( ClientSocketTask(sockfd, connfds, threadPool, randomNums, rd) );
+            }
+        }else{
+            std::this_thread::yield();
+        }
     }
 
-    SingletonThreadPool& thread_pool = SingletonThreadPool::getThreadPool();
-    for(int i=0; i<25; i++){
-        thread_pool.commitTask(
-                [=]{
-                    std::cout << "i=" << i << " , thread_id=" << std::this_thread::get_id() << std::endl;
-                }
-            );
-    }
-
-    thread_pool.join();
+    threadPool.join();
 
     return 0;
 }
