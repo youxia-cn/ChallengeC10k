@@ -65,6 +65,7 @@ public:
                 << receivedNums[MAX_READS/sizeof(int)-1] << " " << receivedNums[MAX_READS/sizeof(int)-1] << std::endl;
         }
 
+        //五分之一的概率连接关闭，五分之四的概率提交新任务
         if(n%5 == 0){
             connfds.erase(sockfd);
             close(sockfd);
