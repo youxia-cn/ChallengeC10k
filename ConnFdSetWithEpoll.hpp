@@ -42,7 +42,7 @@ public:
         std::lock_guard<std::mutex> lk(mut);
         fds.erase(connfd);
         if( epoll_ctl(epfd, EPOLL_CTL_DEL, connfd, NULL) == -1 ){
-            perror("epoll_ctl add");
+            perror("epoll_ctl del");
         }else{
             std::cout << "Delete connect socket " << connfd << " sucessful!" << std::endl;
             std::cout << "There are " << fds.size() << " sockets in epoll." << std::endl;
