@@ -35,7 +35,7 @@ public:
   //              << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
 //            std::for_each(buf, buf+n/sizeof(int)-1, [](int& n){ n = abs(n); } );
   //          std::sort(buf, buf+n/sizeof(int)-1);
-    //        write(sockfd, buf, n);
+            write(sockfd, buf, n);
     //        std::cout << "Socket " << sockfd << " sent data: " << buf[0] << " " << buf[1] 
       //          << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
         }

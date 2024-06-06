@@ -52,7 +52,7 @@ public:
 
     void operator()(){
         int n = rd() % 10;
-/*
+
         for(int i=0; i<n; i++){
             int start = rd()%(100000 - MAX_READS/sizeof(int));
             std::cout << "thread_id:" << std::this_thread::get_id() << " ,fd:" << sockfd << " ,n:" << n << " ,i:" << i << std::endl;
@@ -64,13 +64,15 @@ public:
             std::cout << "Receiv data: " << receivedNums[0] << " " << receivedNums[1] << " ... "
                 << receivedNums[MAX_READS/sizeof(int)-1] << " " << receivedNums[MAX_READS/sizeof(int)-1] << std::endl;
         }
-*/
-        if(n%5 == 0){
+
+     //   if(n%5 == 0){
 //            connfds.erase(sockfd);
-//            close(sockfd);
-        }else{
- //           threadPool.commitTask( ClientSocketTask(sockfd, connfds, threadPool, randomNums, rd) );
-        }
+  //          close(sockfd);
+    //        std::cout << "Close socket, fd:" << sockfd << std::endl;
+       // }else{
+            std::cout << "Reuse socket and add task, sockfd:" << sockfd << std::endl;
+            threadPool.commitTask( *this );
+        //}
     }
 };
 
@@ -104,6 +106,7 @@ int main(){
             }else{
                 connfds.insert(sockfd);
                 threadPool.commitTask( ClientSocketTask(sockfd, connfds, threadPool, randomNums, rd) );
+                std::cout << "Add task, sockfd:" << sockfd << std::endl;
             }
         }else{
             std::this_thread::yield();
