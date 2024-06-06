@@ -65,14 +65,14 @@ public:
                 << receivedNums[MAX_READS/sizeof(int)-1] << " " << receivedNums[MAX_READS/sizeof(int)-1] << std::endl;
         }
 
-     //   if(n%5 == 0){
-//            connfds.erase(sockfd);
-  //          close(sockfd);
-    //        std::cout << "Close socket, fd:" << sockfd << std::endl;
-       // }else{
+        if(n%5 == 0){
+            connfds.erase(sockfd);
+            close(sockfd);
+            std::cout << "Close socket, fd:" << sockfd << std::endl;
+        }else{
             std::cout << "Reuse socket and add task, sockfd:" << sockfd << std::endl;
             threadPool.commitTask( *this );
-        //}
+        }
     }
 };
 
