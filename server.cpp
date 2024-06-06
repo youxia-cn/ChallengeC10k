@@ -14,7 +14,7 @@
 #define MAX_THREADS 20
 #define MAX_SOCKETS 10000
 #define SERVER_PORT 8888
-#define MAX_READS 9012
+#define MAX_READS 1024
 
 class ServerSocketTask{
     int sockfd;
@@ -31,17 +31,16 @@ public:
         if(n==0){
             connfds.erase(sockfd);
         }else{
-            std::cout << "Socket " << sockfd << " received client's data: " << buf[0] << " " << buf[1] 
-                << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
-            std::for_each(buf, buf+n/sizeof(int)-1, [](int& n){ n = abs(n); } );
-            std::sort(buf, buf+n/sizeof(int)-1);
-            write(sockfd, buf, n);
-            std::cout << "Socket " << sockfd << " sent data: " << buf[0] << " " << buf[1] 
-                << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
+//            std::cout << "Socket " << sockfd << " received client's data: " << buf[0] << " " << buf[1] 
+  //              << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
+//            std::for_each(buf, buf+n/sizeof(int)-1, [](int& n){ n = abs(n); } );
+  //          std::sort(buf, buf+n/sizeof(int)-1);
+    //        write(sockfd, buf, n);
+    //        std::cout << "Socket " << sockfd << " sent data: " << buf[0] << " " << buf[1] 
+      //          << " ... " << buf[n/sizeof(int)-2] << " " << buf[n/sizeof(int)-1] << std::endl;
         }
     }
 };
-
 
 int main(){
 

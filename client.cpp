@@ -15,7 +15,7 @@
 #define MAX_SOCKETS 10000
 #define SERVER_ADDR "127.0.0.1"
 #define SERVER_PORT 8888
-#define MAX_READS 4096
+#define MAX_READS 1024
 #define MAX_THREADS 20
 
 class ConnFdSet{
@@ -52,7 +52,7 @@ public:
 
     void operator()(){
         int n = rd() % 10;
-
+/*
         for(int i=0; i<n; i++){
             int start = rd()%(100000 - MAX_READS/sizeof(int));
             std::cout << "thread_id:" << std::this_thread::get_id() << " ,fd:" << sockfd << " ,n:" << n << " ,i:" << i << std::endl;
@@ -64,12 +64,12 @@ public:
             std::cout << "Receiv data: " << receivedNums[0] << " " << receivedNums[1] << " ... "
                 << receivedNums[MAX_READS/sizeof(int)-1] << " " << receivedNums[MAX_READS/sizeof(int)-1] << std::endl;
         }
-
+*/
         if(n%5 == 0){
-            connfds.erase(sockfd);
-            close(sockfd);
+//            connfds.erase(sockfd);
+//            close(sockfd);
         }else{
-            threadPool.commitTask( ClientSocketTask(sockfd, connfds, threadPool, randomNums, rd) );
+ //           threadPool.commitTask( ClientSocketTask(sockfd, connfds, threadPool, randomNums, rd) );
         }
     }
 };
