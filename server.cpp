@@ -1,6 +1,7 @@
 #include "SingletonThreadPool.hpp"
 #include "ConnFdSetWithEpoll.hpp"
 #include <arpa/inet.h>
+#include <mutex>
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -75,7 +76,7 @@ int main(){
                 struct epoll_event ep[MAX_SOCKETS];
                 int nready;
                 while(true){
-                    nready = epoll_wait(connfds.getEpfd(), ep, MAX_SOCKETS, -1);
+                    nready = epoll_wait(connfds.getEpfd(), ep, MAX_SOCKETS, 10);
                     if(nready == -1){
                         perror("epoll_wait");
                     }else{
@@ -86,6 +87,7 @@ int main(){
                             threadPool.commitTask( ServerSocketTask(sockfd, connfds, threadPool) );
                         }
                     }
+                    //我发现，如果之前的 socket 事件未处理完的话，再调用 epoll_wait 会出错
                     std::this_thread::sleep_for(std::chrono::milliseconds(250));
                 }
             }
