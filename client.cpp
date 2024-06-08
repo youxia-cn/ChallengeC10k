@@ -1,44 +1,19 @@
 #include "ThreadPool.hpp"
 #include "ConcurrentSet.hpp"
 #include <arpa/inet.h>
-#include <mutex>
 #include <netinet/in.h>
-#include <stdlib.h>
-#include <string.h>
 #include <strings.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
 #include <random>
-#include <set>
 
 #define MAX_SOCKETS 10000
 #define SERVER_ADDR "127.0.0.1"
 #define SERVER_PORT 8888
-#define MAX_READS 1024
-#define MAX_THREADS 20
-/*
-class ConcurrentFdSet{
-    std::set<int> fds;
-    std::mutex mut;
-    public:
-    size_t size(){
-        std::lock_guard<std::mutex> lk(mut);
-        return fds.size();
-    }
-
-    void insert(int fd){
-        std::lock_guard<std::mutex> lk(mut);
-        fds.insert(fd);
-    }
-
-    void erase(int fd){
-        std::lock_guard<std::mutex> lk(mut);
-        fds.erase(fd);
-    }
-};
-*/
+#define MAX_READS 8192
+#define MAX_THREADS 200
 
 class ClientSocketTask{
     int sockfd;
