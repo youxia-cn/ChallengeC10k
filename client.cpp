@@ -1,4 +1,5 @@
 #include "ThreadPool.hpp"
+#include "ConcurrentSet.hpp"
 #include <arpa/inet.h>
 #include <mutex>
 #include <netinet/in.h>
@@ -17,7 +18,7 @@
 #define SERVER_PORT 8888
 #define MAX_READS 1024
 #define MAX_THREADS 20
-
+/*
 class ConcurrentFdSet{
     std::set<int> fds;
     std::mutex mut;
@@ -37,16 +38,17 @@ class ConcurrentFdSet{
         fds.erase(fd);
     }
 };
+*/
 
 class ClientSocketTask{
     int sockfd;
-    ConcurrentFdSet& fds;
+    ConcurrentSet<int>& fds;
     ThreadPool& threadPool;
     int* randomNums;
     std::random_device& rd;
 
 public:
-    ClientSocketTask(int fd, ConcurrentFdSet& fds, ThreadPool& tp, int* rdn, std::random_device& rde):
+    ClientSocketTask(int fd, ConcurrentSet<int>& fds, ThreadPool& tp, int* rdn, std::random_device& rde):
         sockfd(fd), fds(fds), threadPool(tp), randomNums(rdn), rd(rde){
         }
 
@@ -92,7 +94,7 @@ int main(){
     inet_pton(AF_INET, SERVER_ADDR, &server_addr.sin_addr);
     server_addr.sin_port = htons(SERVER_PORT);
 
-    ConcurrentFdSet fds;
+    ConcurrentSet<int> fds;
     ThreadPool threadPool(MAX_THREADS);
 
     while(true){
