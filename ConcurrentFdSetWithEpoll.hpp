@@ -4,17 +4,15 @@
 #include <set>
 #include <sys/epoll.h>
 #include <mutex>
-#include <condition_variable>
 #include <iostream>
 
-class ConnFdSetWithEpoll{
+class ConcurrentFdSetWithEpoll{
     std::set<int> fds;
     int epfd;
     std::mutex mut;
-    std::condition_variable cond;
 
 public:
-    ConnFdSetWithEpoll(int size){
+    ConcurrentFdSetWithEpoll(int size){
         epfd = epoll_create(size);
     }
     
