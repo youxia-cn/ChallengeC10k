@@ -1,4 +1,4 @@
-#include "SingletonThreadPool.hpp"
+#include "ThreadPool.hpp"
 #include <arpa/inet.h>
 #include <mutex>
 #include <netinet/in.h>
@@ -18,7 +18,7 @@
 #define MAX_READS 1024
 #define MAX_THREADS 20
 
-class ConnFdSet{
+class ConcurrentFdSet{
     std::set<int> fds;
     std::mutex mut;
     public:
@@ -40,14 +40,14 @@ class ConnFdSet{
 
 class ClientSocketTask{
     int sockfd;
-    ConnFdSet& connfds;
-    SingletonThreadPool& threadPool;
+    ConcurrentFdSet& fds;
+    ThreadPool& threadPool;
     int* randomNums;
     std::random_device& rd;
 
 public:
-    ClientSocketTask(int fd, ConnFdSet& fds, SingletonThreadPool& tp, int* rdn, std::random_device& rde):
-        sockfd(fd), connfds(fds), threadPool(tp), randomNums(rdn), rd(rde){
+    ClientSocketTask(int fd, ConcurrentFdSet& fds, ThreadPool& tp, int* rdn, std::random_device& rde):
+        sockfd(fd), fds(fds), threadPool(tp), randomNums(rdn), rd(rde){
         }
 
     void operator()(){
@@ -67,7 +67,7 @@ public:
 
         //五分之一的概率连接关闭，五分之四的概率提交新任务
         if(n%5 == 0){
-            connfds.erase(sockfd);
+            fds.erase(sockfd);
             close(sockfd);
             std::cout << "Close socket, fd:" << sockfd << std::endl;
         }else{
@@ -92,11 +92,11 @@ int main(){
     inet_pton(AF_INET, SERVER_ADDR, &server_addr.sin_addr);
     server_addr.sin_port = htons(SERVER_PORT);
 
-    ConnFdSet connfds;
-    SingletonThreadPool& threadPool = SingletonThreadPool::getThreadPool();
+    ConcurrentFdSet fds;
+    ThreadPool threadPool(MAX_THREADS);
 
     while(true){
-        if(connfds.size() < MAX_SOCKETS){
+        if(fds.size() < MAX_SOCKETS){
             int sockfd = socket(PF_INET, SOCK_STREAM, 0);
             if(sockfd == -1){
                 perror("create socket");
@@ -104,9 +104,10 @@ int main(){
             }
             if(connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1){
                 perror("connect");
+                close(sockfd);
             }else{
-                connfds.insert(sockfd);
-                threadPool.commitTask( ClientSocketTask(sockfd, connfds, threadPool, randomNums, rd) );
+                fds.insert(sockfd);
+                threadPool.commitTask( ClientSocketTask(sockfd, fds, threadPool, randomNums, rd) );
                 std::cout << "Add task, sockfd:" << sockfd << std::endl;
             }
         }else{
